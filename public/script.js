@@ -1,93 +1,87 @@
-// Générer une couleur hexadécimale aléatoire
-function getRandomColor() {
-    const letters = '0123456789ABCDEF';
-    let color = '#';
-    for (let i = 0; i < 6; i++) {
-        color += letters[Math.floor(Math.random() * 16)];
+const COLOR_PALETTE = ['#FF5733', '#33C3F0', '#2ECC71', '#9B59B6', '#F1C40F'];
+
+/**
+ * Get a random color from the color palette
+ * @returns {string} - A random color from the color palette
+ */
+const getNextColor = (prevColor = '') => {
+    const index = COLOR_PALETTE.indexOf(prevColor);
+    if (index === -1) {
+        return COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)];
     }
-    return color;
+    return COLOR_PALETTE[(index + 1) % COLOR_PALETTE.length];
 }
 
-// Récupérer les couleurs du serveur et les appliquer à la grille
-async function loadGridColors() {
+/**
+ * Load the grid from the server
+ * @returns {Promise<void>} - A promise that resolves when the grid is loaded
+ */
+const loadGrid = async () => {
     try {
         const response = await fetch('/api/grid');
         const grid = await response.json();
-        
-        // Appliquer les couleurs aux cases de la grille
-        const gridItems = document.querySelectorAll('.grid-item');
-        let index = 0;
-        
-        for (let row = 0; row < grid.length; row++) {
-            for (let col = 0; col < grid[row].length; col++) {
-                if (gridItems[index]) {
-                    gridItems[index].style.backgroundColor = grid[row][col];
-                    // Stocker les coordonnées dans l'élément
-                    gridItems[index].dataset.row = row;
-                    gridItems[index].dataset.col = col;
-                    index++;
-                }
+
+        const cells = document.querySelectorAll('.grid-item');
+        cells.forEach(cell => {
+            const row = parseInt(cell.getAttribute('data-row'));
+            const col = parseInt(cell.getAttribute('data-col'));
+            if (grid[row] && grid[row][col]) {
+                cell.style.backgroundColor = grid[row][col];
             }
-        }
+        });
     } catch (error) {
-        console.error('Erreur lors du chargement des couleurs:', error);
+        console.error('Erreur lors du chargement de la grille:', error);
     }
 }
 
-// Mettre à jour la couleur d'une cellule sur le serveur
-async function updateCellColor(x, y, color) {
+/**
+ * Update the color of a cell
+ * @param {number} row 
+ * @param {number} col 
+ * @param {string} color 
+ * @returns {Promise<void>} - A promise that resolves when the color is updated
+ */
+const updateColor = async (row, col, color) => {
+    const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+    if (!cell) return;
+
     try {
-        const response = await fetch('/api/cell', {
-            method: 'PUT',
+        const response = await fetch('/api/update-color', {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ x, y, color })
+            body: JSON.stringify({ row, col, color }),
         });
-        
-        const result = await response.json();
-        if (result.ok) {
-            return true;
-        } else {
-            console.error('Erreur serveur:', result.message);
-            return false;
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            cell.style.backgroundColor = color;
         }
     } catch (error) {
-        console.error('Erreur lors de la mise à jour:', error);
-        return false;
+        console.error('Error updating color:', error);
     }
 }
 
-// Gérer le clic sur une case
-function handleCellClick(event) {
-    const cell = event.target;
-    const x = parseInt(cell.dataset.col);
-    const y = parseInt(cell.dataset.row);
-    
-    // Générer une nouvelle couleur aléatoire
-    const newColor = getRandomColor();
-    
-    // Mettre à jour visuellement immédiatement
-    cell.style.backgroundColor = newColor;
-    
-    // Envoyer la mise à jour au serveur
-    updateCellColor(x, y, newColor);
-}
-
-// Initialiser les écouteurs d'événements après le chargement
-function setupEventListeners() {
-    const gridItems = document.querySelectorAll('.grid-item');
-    gridItems.forEach(item => {
-        item.addEventListener('click', handleCellClick);
-        // Ajouter un style pour indiquer que c'est cliquable
-        item.style.cursor = 'pointer';
-    });
-}
-
-// Charger les couleurs au chargement de la page
-document.addEventListener('DOMContentLoaded', () => {
-    loadGridColors().then(() => {
-        setupEventListeners();
-    });
+// When the window is loaded, load the grid and handle clicks
+window.addEventListener('load', () => {
+    loadGrid();
+    handleClicks();
 });
 
+/**
+ * Handle clicks on the cells
+ * @returns {void}
+ */
+const handleClicks = () => {
+    const cells = document.querySelectorAll('.grid-item');
+    cells.forEach(cell => {
+        cell.addEventListener('click', () => {
+            const row = parseInt(cell.getAttribute('data-row'));
+            const col = parseInt(cell.getAttribute('data-col'));
+            const color = getNextColor(cell.style.backgroundColor);
+            updateColor(row, col, color);
+        });
+    });
+};

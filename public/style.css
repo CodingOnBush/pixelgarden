@@ -24,7 +24,7 @@ body {
     background-color: white;
     position: relative;
     cursor: pointer;
-    transition: opacity 0.2s ease;/* To animate the opacity of the cell */
+    transition: opacity 0.15s ease;
 }
 
 /* To disable the click event when the cell is loading */
@@ -51,4 +51,9 @@ body {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* Effet de clic très subtil: légère baisse d'opacité pendant l'appui */
+.grid-item:active {
+    opacity: 0.7;
 }

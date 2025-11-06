@@ -78,6 +78,7 @@ const handleClicks = () => {
     const cells = document.querySelectorAll('.grid-item');
     cells.forEach(cell => {
         cell.addEventListener('click', () => {
+            // Mise à jour de couleur
             const row = parseInt(cell.getAttribute('data-row'));
             const col = parseInt(cell.getAttribute('data-col'));
             const color = getNextColor(cell.style.backgroundColor);
